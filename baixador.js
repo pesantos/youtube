@@ -1,6 +1,7 @@
 const fs = require('fs');
 const https = require('https');
 const youtubedl = require('youtube-dl-exec');
+const fetch = require('node-fetch');
 
 
 
@@ -42,12 +43,12 @@ async function obterMaiorEbaixar(out,destino){
         
     });
 
-    s(ultimo.url,destino);
+    await novoSave(ultimo.url,destino);
 }
 
 
 async function s(link,nome){
-    https.get(link,(res) => {
+    await https.get(link,(res) => {
         const path = nome; 
         const filePath = fs.createWriteStream(path);
         res.pipe(filePath);
@@ -57,5 +58,17 @@ async function s(link,nome){
             console.log("arquivo Salvo >>",nome);
         })
     })
+}
+
+async function novoSave(url,path){
+    return (async (url, path) => {
+        const res = await fetch(url);
+        const fileStream = fs.createWriteStream(path);
+        await new Promise((resolve, reject) => {
+            res.body.pipe(fileStream);
+            res.body.on("error", reject);
+            fileStream.on("finish", resolve);
+          });
+      });
 }
 
