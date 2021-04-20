@@ -9,7 +9,6 @@ const videoCut = videoStitch.cut;
 let threads = 3;
 
 let ob = null;
-// console.log("ob lido",ob);
 let cvideo = null;
 let ccaminho = null;
 
@@ -27,12 +26,11 @@ async function iniciar(){
 
 async function loop(){
     if(jaTemVideo(ccaminho)){
-        console.log("Processando cortes...");
-        // processar cortes
+        console.log("Processando cortes... ("+threads+") de cada vez.");
         processarCortes();
     
     }else{
-        console.log("Tentando baixar video...");
+        console.log("Tentando baixar video, aguarde...");
         await baixar(cvideo,'./videosCompletos/'+ccaminho+'/videoCompleto.mp4',ccaminho);
         
         
@@ -76,7 +74,6 @@ async function processarCortes(){
     }
 
     buff = buff.reverse();
-
     pFila();
 }
 
@@ -97,18 +94,13 @@ function removerPontos(string){
   }
 
 async function obterMaiorEbaixar(out,destino){
-    let maior = 0;
-    let link = null;
-    let acodec = null;
     let ultimo = null;
+
     out.formats.forEach(f=>{
         if(f.format.includes('p') && (f.acodec+'').includes('mp4') && f.height>359){
             ultimo = f;
             console.log("((",f.format,"))",f.acodec,f.height);
         }
-
-        
-        
     });
 
     await s(ultimo.url,destino);
@@ -121,8 +113,7 @@ async function s(link,nome){
         res.pipe(filePath);
         filePath.on('finish',() => {
             filePath.close();
-            
-            console.log("arquivo Salvo >>",nome);
+            console.log("arquivo Salvo em: ",nome);
             chamarLoop();
         })
     })
@@ -149,9 +140,6 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
       }
       
     }
-
-    
-
     return false;
   }
 
@@ -162,10 +150,9 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
     }
 
     console.log("iniciando corte Nº "+numeroCorte,inicio,fim,local);
-
     
     videoCut({
-      silent: true // optional. if set to false, gives detailed output on console
+      silent: true 
     })
     .original({
       "fileName": arquivo,
