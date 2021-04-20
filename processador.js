@@ -14,7 +14,7 @@ let ccaminho = null;
 
 
 console.log("Iniciando processo de ripagem...");
-
+console.time('execucao');
 async function iniciar(){
     ob = await util.ler();
     cvideo = ob['blueprint'][0].split(';')[0];
@@ -57,7 +57,8 @@ async function baixar(caminho,destino,diretorio){
 }
 
 let buff = [];
-
+let quantidadeProcessos = 0;
+let quantidadeProcessados = 0;
 async function processarCortes(){
     let cont = 1;
     let corte = 1;
@@ -67,11 +68,13 @@ async function processarCortes(){
       
       if(cont>1){
         buff.push({a:'./videosCompletos/'+ccaminho+'/videoCompleto.mp4',b:p[0],c:p[1],d:ccaminho,e:p[2],f:corte});
+        quantidadeProcessos++;
         //iniciarCorte('./videosCompletos/'+ccaminho+'/videoCompleto.mp4',p[0],p[1],ccaminho,p[2],corte);
         corte = corte+1;
       }
       cont++;
     }
+
 
     buff = buff.reverse();
     pFila();
@@ -86,6 +89,11 @@ async function pFila(){
             iniciarCorte(t.a,t.b,t.c,t.d,t.e,t.f);
         }
         
+    }
+
+    if(quantidadeProcessados==quantidadeProcessos){
+      console.log("Final da tarefa alcançado.");
+      console.log("tempo de Execução (milisegundos): ",console.timeEnd('execucao'));
     }
 }
 
@@ -172,6 +180,7 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
        copiador(videoClips[1].fileName,'./cortes/'+local+"/"+nomeArq+"/"+nomeArq+'.mp4',()=>{});
        fs.writeFileSync('./cortes/'+local+"/"+nomeArq+"/mensagem.txt", mens);
        console.log("Finalizou Corte Nº "+numeroCorte);
+       quantidadeProcessados++;
        processados++;
        if(processados==threads){
            processados = 0;
