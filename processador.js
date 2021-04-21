@@ -5,12 +5,17 @@ const https = require('https');
 const youtubedl = require('youtube-dl-exec');
 const fs = require('fs');
 const videoStitch = require('video-stitch');
+let dao = require('./comunicador.js');
 const videoCut = videoStitch.cut;
 let threads = 3;
 
 let ob = null;
 let cvideo = null;
 let ccaminho = null;
+let dados = {
+  video:null,
+  formato:null
+};
 
 
 console.log("Iniciando processo de ripagem...");
@@ -91,10 +96,7 @@ async function pFila(){
         
     }
 
-    if(quantidadeProcessados==quantidadeProcessos){
-      console.log("Final da tarefa alcançado.");
-      console.log("tempo de Execução (milisegundos): ",console.timeEnd('execucao'));
-    }
+    
 }
 
 function removerPontos(string){
@@ -103,18 +105,29 @@ function removerPontos(string){
 
 async function obterMaiorEbaixar(out,destino){
     let ultimo = null;
-
+    let s720 = false;
     out.formats.forEach(f=>{
         if(f.format.includes('p') && (f.acodec+'').includes('mp4') && f.height>359){
-            ultimo = f;
+            if(!s720)ultimo = f;
+            if(f.format.includes('720p')){
+              ultimo = f;
+              dados.formato = f.format;
+              dados.video = ccaminho;
+              s720 = true;
+            }
             console.log("((",f.format,"))",f.acodec,f.height);
         }
     });
-
+    console.log("Escolhido>>",ultimo.format);
     await s(ultimo.url,destino);
 }
 
+function registrar(){
+  dao.submeter(dados,'beludo');
+}
+
 async function s(link,nome){
+    registrar();
     await https.get(link,(res) => {
         const path = nome; 
         const filePath = fs.createWriteStream(path);
@@ -182,11 +195,25 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
        console.log("Finalizou Corte Nº "+numeroCorte);
        quantidadeProcessados++;
        processados++;
+
+       if(quantidadeProcessados==(quantidadeProcessos)){
+        console.log("Final da tarefa alcançado.");
+        console.log("tempo de Execução (milisegundos): ",console.timeEnd('execucao'));
+        finalizar();
+      }
+
        if(processados==threads){
            processados = 0;
            pFila();  
        }
     });
+  }
+
+  function finalizar(){
+    if (!fs.existsSync('./blueprintsFinalizados')){
+      fs.mkdirSync('./blueprintsFinalizados');
+    }
+    copiador('./blueprint/blueprint.txt','./blueprintsFinalizados/'+ccaminho+'.txt',()=>{});
   }
 
 
