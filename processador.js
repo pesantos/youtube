@@ -29,6 +29,17 @@ async function iniciar(){
     loop();
 }
 
+function gerarDiretorio(dir){
+  if (!fs.existsSync('./'+dir)){
+    fs.mkdirSync('./'+dir);
+  }
+}
+
+gerarDiretorio('videosCompletos');
+gerarDiretorio('cortes');
+gerarDiretorio('blueprint');
+
+
 async function loop(){
     if(jaTemVideo(ccaminho)){
         console.log("Processando cortes... ("+threads+") de cada vez.");

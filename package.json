@@ -2,7 +2,7 @@
   "name": "youtube_cliper",
   "version": "1.0.0",
   "description": "Projeto para criar clipes de videos existentes do youtube",
-  "main": "index.js",
+  "main": "processador.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,8 +15,6 @@
   "license": "MIT",
   "dependencies": {
     "ffmpeg-concat": "^1.2.3",
-    "node-fetch": "^2.6.0",
-    "node-url-downloader": "^0.1.9",
     "video-stitch": "^1.6.0",
     "youtube-dl-exec": "^1.2.1",
     "ytdl-core": "^3.4.1"
