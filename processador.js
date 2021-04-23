@@ -1,5 +1,5 @@
 'use strict';
-let util = require('./utilitario.js');
+let utili = require('./utilitario.js');
 const copiador = require('./copiador.js');
 const https = require('https');
 const youtubedl = require('youtube-dl-exec');
@@ -21,7 +21,7 @@ let dados = {
 console.log("Iniciando processo de ripagem...");
 console.time('execucao');
 async function iniciar(){
-    ob = await util.ler();
+    ob = await utili.ler();
     cvideo = ob['blueprint'][0].split(';')[0];
     ccaminho = ob['blueprint'][0].split(';')[1];
     threads = parseInt((ob['blueprint'][0].split(';')[2])+'');
@@ -53,24 +53,22 @@ async function loop(){
     }
 }
 
-async function baixar(caminho,destino,diretorio){
-    if (!fs.existsSync('./videosCompletos/'+diretorio)){
-        fs.mkdirSync('./videosCompletos/'+diretorio);
-    }
+// async function baixar(caminho,destino,diretorio){
+    
 
-    let output = await 
-    youtubedl(caminho, {
-        dumpJson: true,
-        noWarnings: true,
-        noCallHome: true,
-        noCheckCertificate: true,
-        preferFreeFormats: true,
-        youtubeSkipDashManifest: true,
-        referer: caminho
-      });
+//     let output = await 
+//     youtubedl(caminho, {
+//         dumpJson: true,
+//         noWarnings: true,
+//         noCallHome: true,
+//         noCheckCertificate: true,
+//         preferFreeFormats: true,
+//         youtubeSkipDashManifest: true,
+//         referer: caminho
+//       });
         
-    obterMaiorEbaixar(output,destino);
-}
+//     baixar(output,destino,diretorio);
+// }
 
 let buff = [];
 let quantidadeProcessos = 0;
@@ -137,18 +135,79 @@ function registrar(){
   dao.submeter(dados,'beludo');
 }
 
-async function s(link,nome){
-    registrar();
-    await https.get(link,(res) => {
-        const path = nome; 
-        const filePath = fs.createWriteStream(path);
-        res.pipe(filePath);
-        filePath.on('finish',() => {
-            filePath.close();
-            console.log("arquivo Salvo em: ",nome);
-            chamarLoop();
-        })
-    })
+// async function s(link,nome){
+//     registrar();
+//     await https.get(link,(res) => {
+//         const path = nome; 
+//         const filePath = fs.createWriteStream(path);
+//         res.pipe(filePath);
+//         filePath.on('finish',() => {
+//             filePath.close();
+//             console.log("arquivo Salvo em: ",nome);
+//             chamarLoop();
+//         })
+//     })
+// }
+
+async function s(link,onde,formato,diretorio){
+  // registrar();
+  console.log("Salvando... ("+onde+")["+formato+"]");
+  await https.get(link,(res) => {
+      const path = onde; 
+      const filePath = fs.createWriteStream(path);
+      res.pipe(filePath);
+      filePath.on('finish',() => {
+          filePath.close();
+          console.log("arquivo Salvo em: ",onde);
+          va++;
+
+          if(links.length == 1){
+            //iniciar cortes
+          }
+          if(va==links.length){
+            juntar();
+          }
+          
+      });
+
+      
+  });
+}
+
+async function baixar(caminho,onde,diretorio){
+  if (!fs.existsSync('./videosCompletos/'+diretorio)){
+    fs.mkdirSync('./videosCompletos/'+diretorio);
+}
+  let output = await 
+  youtubedl(caminho, {
+      dumpJson: true,
+      noWarnings: true,
+      noCallHome: true,
+      noCheckCertificate: true,
+      preferFreeFormats: true,
+      youtubeSkipDashManifest: true,
+      referer: caminho
+    });
+
+  //   console.log(output);
+    let ped = output.format.split("+");
+    
+
+    output.formats.forEach(fo=>{
+      if(fo.format==ped[0])links.push({link:fo.url,formato:fo.format});
+      if(ped[1] && ped[1]==fo.format)links.push({link:fo.url,formato:fo.format,tipo:fo.format.includes('audio')?'audio':'video'});
+    });
+
+  //   console.log(links);
+
+    for(let l of links){
+        if (l.tipo=='audio'){
+          await s(l.link,'./teste/audio.mp3',l.formato);
+        }else{
+          await s(l.link,'./teste/video.mp4',l.formato);
+        }
+        
+      }
 }
 
 function chamarLoop(){
@@ -225,6 +284,22 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
       fs.mkdirSync('./blueprintsFinalizados');
     }
     copiador('./blueprint/blueprint.txt','./blueprintsFinalizados/'+ccaminho+'.txt',()=>{});
+  }
+
+  async function juntar(video,audio,onde){
+    console.log("*Juntando Arquivo de Video e o de Audio...")
+    let res = await executar('ffmpeg -i '+video+' -i '+audio+' -c:v copy -c:a aac '+onde);
+    console.log("OK--Arquivo Unificado.");
+  }
+  
+  async function executar(comando){
+    try {
+      const res = await exec(comando);
+      return res;
+  
+    } catch (e) {
+      console.error(e); // should contain code (exit code) and signal (that caused the termination).
+    }
   }
 
 

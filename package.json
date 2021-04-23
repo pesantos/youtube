@@ -15,6 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "ffmpeg-concat": "^1.2.3",
+    "node-fetch": "^2.6.1",
     "video-stitch": "^1.6.0",
     "youtube-dl-exec": "^1.2.1",
     "ytdl-core": "^3.4.1"
