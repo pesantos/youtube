@@ -150,6 +150,7 @@ function registrar(){
 // }
 
 async function s(link,onde,formato,diretorio){
+  gerarDiretorio('./videosCompletos/'+diretorio);
   // registrar();
   console.log("Salvando... ("+onde+")["+formato+"]");
   await https.get(link,(res) => {
@@ -161,11 +162,15 @@ async function s(link,onde,formato,diretorio){
           console.log("arquivo Salvo em: ",onde);
           va++;
 
+
+          //retirar esse bloco para utilizar o AWAIT NO JUNTADOR
           if(links.length == 1){
             //iniciar cortes
+            copiador('./pedacos/video.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{chamarLoop()});
           }
           if(va==links.length){
-            juntar();
+            await juntar('./pedacos/video.mp4','./pedacos/audio.mp3','./pedacos/produto.mp4');
+            copiador('./pedacos/produto.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{chamarLoop()});
           }
           
       });
@@ -202,9 +207,9 @@ async function baixar(caminho,onde,diretorio){
 
     for(let l of links){
         if (l.tipo=='audio'){
-          await s(l.link,'./teste/audio.mp3',l.formato);
+          await s(l.link,'./pedacos/audio.mp3',l.formato,diretorio);
         }else{
-          await s(l.link,'./teste/video.mp4',l.formato);
+          await s(l.link,'./pedacos/video.mp4',l.formato,diretorio);
         }
         
       }
