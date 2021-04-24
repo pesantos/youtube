@@ -8,14 +8,20 @@ const videoStitch = require('video-stitch');
 let dao = require('./comunicador.js');
 const videoCut = videoStitch.cut;
 let threads = 3;
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 let ob = null;
-let cvideo = null;
-let ccaminho = null;
+let cvideo = null;//link youtube
+let ccaminho = null;//artista
+let ident = 'Kevin';
 let dados = {
   video:null,
   formato:null
 };
+
+let va = 0;
+let links = [];
 
 
 console.log("Iniciando processo de ripagem...");
@@ -38,6 +44,7 @@ function gerarDiretorio(dir){
 gerarDiretorio('videosCompletos');
 gerarDiretorio('cortes');
 gerarDiretorio('blueprint');
+gerarDiretorio('pedacos');
 
 
 async function loop(){
@@ -112,27 +119,19 @@ function removerPontos(string){
     return string.split(':').join("-");
   }
 
-async function obterMaiorEbaixar(out,destino){
-    let ultimo = null;
-    let s720 = false;
-    out.formats.forEach(f=>{
-        if(f.format.includes('p') && (f.acodec+'').includes('mp4') && f.height>359){
-            if(!s720)ultimo = f;
-            if(f.format.includes('720p')){
-              ultimo = f;
-              dados.formato = f.format;
-              dados.video = ccaminho;
-              s720 = true;
-            }
-            console.log("((",f.format,"))",f.acodec,f.height);
-        }
-    });
-    console.log("Escolhido>>",ultimo.format);
-    await s(ultimo.url,destino);
-}
 
-function registrar(){
-  dao.submeter(dados,'beludo');
+
+async function registrar(form){
+  let dados = {
+    video:ccaminho,
+    formato:form,
+    identidade:ident
+  }
+  let res = await dao.submeter(dados,'beludo');
+  console.log("Registro",res);
+  if(res['resposta']=='autorizado')return false;
+
+  return true;
 }
 
 // async function s(link,nome){
@@ -151,9 +150,14 @@ function registrar(){
 
 async function s(link,onde,formato,diretorio){
   gerarDiretorio('./videosCompletos/'+diretorio);
-  // registrar();
+   if(await registrar(formato)){
+     console.log("Problema na autenticação.");
+     return;
+   }
+
   console.log("Salvando... ("+onde+")["+formato+"]");
-  await https.get(link,(res) => {
+  
+   https.get(link,(res) => {
       const path = onde; 
       const filePath = fs.createWriteStream(path);
       res.pipe(filePath);
@@ -166,17 +170,26 @@ async function s(link,onde,formato,diretorio){
           //retirar esse bloco para utilizar o AWAIT NO JUNTADOR
           if(links.length == 1){
             //iniciar cortes
+            console.log("punico")
             copiador('./pedacos/video.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{chamarLoop()});
           }
           if(va==links.length){
-            await juntar('./pedacos/video.mp4','./pedacos/audio.mp3','./pedacos/produto.mp4');
-            copiador('./pedacos/produto.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{chamarLoop()});
+            console.log("pjunto");
+            pjunto(diretorio);
           }
           
       });
 
       
   });
+}
+
+async function pjunto(diretorio){
+  await juntar('./pedacos/video.mp4','./pedacos/audio.mp3','./pedacos/produto.mp4');
+  copiador('./pedacos/produto.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{});
+  fs.unlinkSync('./pedacos/video.mp4');
+  fs.unlinkSync('./pedacos/audio.mp3');
+  chamarLoop();
 }
 
 async function baixar(caminho,onde,diretorio){

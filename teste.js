@@ -88,7 +88,7 @@ async function executar(comando){
 
 async function testarJuntamento(){
   console.log("Antes");
- awaitjuntar('./pedacos/video.mp4','./pedacos/audio.mp3','./pedacos/produto.mp4');
+ await juntar('./pedacos/video.mp4','./pedacos/audio.mp3','./pedacos/produto.mp4');
 console.log("Depois");
 }
 
