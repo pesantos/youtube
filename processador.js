@@ -11,6 +11,7 @@ let threads = 3;
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
+let resolucao = 1;
 let ob = null;
 let cvideo = null;//link youtube
 let ccaminho = null;//artista
@@ -25,6 +26,11 @@ let links = [];
 
 
 console.log("Iniciando processo de ripagem...");
+if(resolucao==1){
+  console.log("Resolução 720p 30fps -- Modo Performance");
+}else{
+  console.log("Resolução 1080p 60fps(Quando disponível) -- Modo Qualidade - Download Lento");
+}
 console.time('execucao');
 async function iniciar(){
     ob = await utili.ler();
@@ -107,12 +113,17 @@ async function pFila(){
         let t = buff.pop();
         // console.log(">>",t);
         if(t){
-            iniciarCorte(t.a,t.b,t.c,t.d,t.e,t.f);
+          processarCortePreciso(t.a,t.b,t.c,t.d,t.e,t.f);
         }
         
     }
 
     
+}
+
+function processarCortePreciso(a,b,c,d,e,f){
+  // console.log("a->"+a,"b->"+b,"c->"+c,"d->"+d,"e->"+e,"f->"+f);
+  cortePreciso(a,b,c,d,f,e);
 }
 
 function removerPontos(string){
@@ -128,7 +139,7 @@ async function registrar(form){
     identidade:ident
   }
   let res = await dao.submeter(dados,'beludo');
-  console.log("Registro",res);
+  // console.log("Registro",res);
   if(res['resposta']=='autorizado')return false;
 
   return true;
@@ -171,9 +182,10 @@ async function s(link,onde,formato,diretorio){
           if(links.length == 1){
             //iniciar cortes
             console.log("punico")
-            copiador('./pedacos/video.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{chamarLoop()});
+            copiador('./pedacos/video.mp4','./videosCompletos/'+diretorio+'/videoCompleto.mp4',()=>{});
+            chamarLoop();
           }
-          if(va==links.length){
+          if(va==links.length && links.length>1){
             console.log("pjunto");
             pjunto(diretorio);
           }
@@ -210,11 +222,25 @@ async function baixar(caminho,onde,diretorio){
   //   console.log(output);
     let ped = output.format.split("+");
     
-
+    let aquele = null;
     output.formats.forEach(fo=>{
-      if(fo.format==ped[0])links.push({link:fo.url,formato:fo.format});
-      if(ped[1] && ped[1]==fo.format)links.push({link:fo.url,formato:fo.format,tipo:fo.format.includes('audio')?'audio':'video'});
+
+      if(resolucao==1){
+        if(fo.format.includes('(720p)') && fo.acodec.includes('mp')){
+          aquele = fo;
+        }
+      }else{
+        if(fo.format==ped[0])links.push({link:fo.url,formato:fo.format});
+        if(ped[1] && ped[1]==fo.format)links.push({link:fo.url,formato:fo.format,tipo:fo.format.includes('audio')?'audio':'video'});
+      }
+
+      
     });
+
+    if(aquele){
+      links = [];
+      links.push({link:aquele.url,formato:aquele.format,tipo:aquele.format.includes('audio')?'audio':'video'});
+    }
 
   //   console.log(links);
 
@@ -222,6 +248,7 @@ async function baixar(caminho,onde,diretorio){
         if (l.tipo=='audio'){
           await s(l.link,'./pedacos/audio.mp3',l.formato,diretorio);
         }else{
+          
           await s(l.link,'./pedacos/video.mp4',l.formato,diretorio);
         }
         
@@ -319,6 +346,29 @@ function jaTemVideo(ccaminho){// checa se já tem o video completo
       console.error(e); // should contain code (exit code) and signal (that caused the termination).
     }
   }
+
+  async function cortePreciso(video,inicio,final,artista,numero,mensagem){
+    let nomePasta = removerPontos(inicio+"-"+final);
+    gerarDiretorio("cortes/"+artista);
+    gerarDiretorio("cortes/"+artista+"/"+nomePasta);
+    console.log("Cortando corte Nº "+numero+" ("+inicio+" - "+final+")...");
+    let resposta = await executar("ffmpeg -ss "+inicio+" -i "+video+" -to "+final+" -c copy -copyts "+"./cortes/"+artista+"/"+nomePasta+"/"+nomePasta+".mp4");
+    console.log("Corte Nº "+numero+" finalizado.");
+    fs.writeFileSync('./cortes/'+artista+"/"+nomePasta+"/mensagem.txt", mensagem);// escreve o texto
+    processados++;
+    quantidadeProcessados++;
+
+    if(quantidadeProcessados==(quantidadeProcessos)){
+      console.log("Final da tarefa alcançado.");
+      console.log("tempo de Execução (milisegundos): ",console.timeEnd('execucao'));
+      finalizar();
+    }
+
+     if(processados==threads){
+         processados = 0;
+         pFila();  
+     }
+}
 
 
   iniciar();
